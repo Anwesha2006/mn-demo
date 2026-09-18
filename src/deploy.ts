@@ -6,6 +6,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Buffer } from 'buffer';
 import { resolveNetwork, getOrCreateSeed, recordDeployment } from './network';
 import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -23,9 +24,20 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 // @ts-expect-error Required for wallet sync
 globalThis.WebSocket = WebSocket;
 
-// Identifier under which this contract's private state is stored. The
-// hello-world contract has no witnesses, so its private state is empty ({}).
+// Identifier under which this contract's private state is stored.
+// The hello-world contract uses a secret_key() witness for ownership proofs.
 const PRIVATE_STATE_ID = 'helloWorldPrivateState';
+
+// ─── Witnesses ────────────────────────────────────────────────────────────────
+// Build the witness object for the hello-world contract.
+// secret_key() is the ONLY private input — it never leaves this machine.
+// The constructor hashes it with persistentHash and stores the hash as `owner`.
+function buildWitnesses(seed: string) {
+  const secretKeyBytes = Buffer.from(seed, 'hex');
+  return {
+    secret_key: (): Uint8Array => new Uint8Array(secretKeyBytes),
+  };
+}
 
 // ─── Network configuration ─────────────────────────────────────────────────────
 //
@@ -77,7 +89,6 @@ if (!fs.existsSync(contractPath)) {
 const HelloWorld = await import(pathToFileURL(contractPath).href);
 
 const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -283,17 +294,15 @@ async function main() {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // Midnight.js 4.1.x supplies private state via privateStateId +
-      // initialPrivateState (empty here — the hello-world contract has no
-      // witnesses). args is the contract constructor's arguments: empty for
-      // hello-world's no-arg constructor. (Statically-typed contracts can omit
-      // args entirely; this script loads the contract dynamically, so the
-      // conditional args type widens to any[] and an explicit [] is required.)
+      // The constructor takes one arg: initialMessage (Opaque<"string">).
+      // initialPrivateState supplies the secret_key() witness used in the
+      // constructor to set the owner hash. The witness runs locally and is
+      // never sent to the network or written to any ledger record.
       deployed = await deployContract(providers, {
         compiledContract: compiledContract as any,
-        args: [],
+        args: ['Hello from Midnight!'] as any,
         privateStateId: PRIVATE_STATE_ID,
-        initialPrivateState: {},
+        initialPrivateState: buildWitnesses(seed),
       });
       break;
     } catch (err: any) {

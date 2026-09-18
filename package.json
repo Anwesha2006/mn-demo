@@ -16,7 +16,7 @@
     "proof-server:start": "docker compose up -d",
     "proof-server:stop": "docker compose down",
     "clean": "rm -rf contracts/managed .midnight-state.json .midnight-wallet-state",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npx jest tests/ --passWithNoTests",
     "test:e2e": "tsx scripts/e2e-check.ts"
   },
   "dependencies": {
@@ -35,10 +35,33 @@
     "ws": "^8.21.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/js-with-ts-esm",
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".ts"],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true,
+          "tsconfig": {
+            "module": "ES2022",
+            "moduleResolution": "Bundler"
+          }
+        }
+      ]
+    }
   },
   "engines": {
     "node": ">=22.0.0"

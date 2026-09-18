@@ -1,6 +1,32 @@
 # mn-demo
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+A Midnight Network hello-world contract demonstrating private witnesses and ownership proofs.
+
+## Contract Address
+
+| Network  | Address                          |
+|----------|----------------------------------|
+| Preview  | [PASTE ADDRESS AFTER DEPLOY]     |
+| Preprod  | [PASTE ADDRESS AFTER DEPLOY]     |
+
+> Deploy with `npm run setup -- --network preview` and paste the address above.
+
+---
+
+## Privacy Model
+
+| Layer | Data | Visibility |
+|-------|------|-----------|
+| **PUBLIC** (on-chain) | `message` — current stored message | ✅ Visible to anyone |
+| **PUBLIC** (on-chain) | `owner` — hash of owner's secret key | ✅ Visible (hash only) |
+| **PRIVATE** (witness) | `secret_key()` — owner's secret key | ❌ Never on-chain |
+
+**What the user proves without revealing:**
+- `storeMessage()`: "I am the owner of this contract" — by proving knowledge of the secret key whose hash matches the stored `owner` field, **without revealing the actual secret key**.
+
+The `disclose()` keyword is used deliberately wherever a witness-derived value must be written to the public ledger, making privacy decisions explicit in the source code.
+
+---
 
 ## Quick start
 

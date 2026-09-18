@@ -9,6 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
 import { Buffer } from 'buffer';
 
+import { Buffer } from 'buffer';
+
 // Midnight SDK imports
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -24,7 +26,7 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Must match the privateStateId used at deploy time so the CLI reconnects to
-// the same private state. The hello-world contract has no witnesses (empty state).
+// the same private state. The hello-world contract uses secret_key() witness.
 const PRIVATE_STATE_ID = 'helloWorldPrivateState';
 
 const { network, config: networkConfig } = resolveNetwork();
@@ -45,9 +47,17 @@ if (!fs.existsSync(contractPath)) {
 const HelloWorld = await import(pathToFileURL(contractPath).href);
 
 const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
+
+// Build witnesses for hello-world — secret_key() is the only private input.
+// Derived from the wallet seed so the caller can prove ownership.
+function buildWitnesses(seed: string) {
+  const secretKeyBytes = Buffer.from(seed, 'hex');
+  return {
+    secret_key: (): Uint8Array => new Uint8Array(secretKeyBytes),
+  };
+}
 
 // ─── Providers ─────────────────────────────────────────────────────────────────
 
@@ -156,7 +166,7 @@ async function main() {
       compiledContract: compiledContract as any,
       contractAddress: deployment.address,
       privateStateId: PRIVATE_STATE_ID,
-      initialPrivateState: {},
+      initialPrivateState: buildWitnesses(seed),
     });
 
     console.log('  ✅ Connected!\n');
@@ -177,7 +187,8 @@ async function main() {
           const message = await rl.question('  Enter your message: ');
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.storeMessage(message);
+            const witnesses = buildWitnesses(seed);
+            const tx = await deployed.callTx.storeMessage(witnesses, message);
             console.log(`\n  ✅ Message stored: "${message}"`);
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);

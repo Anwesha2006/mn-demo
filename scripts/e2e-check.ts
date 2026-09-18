@@ -9,6 +9,8 @@ import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
 
+import { Buffer } from 'buffer';
+
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
@@ -56,9 +58,13 @@ async function main() {
   if (!fs.existsSync(contractPath)) fail('Compiled contract missing — run `npm run compile`.');
   const HelloWorld = await import(pathToFileURL(contractPath).href);
   const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-    CompiledContract.withVacantWitnesses,
     CompiledContract.withCompiledFileAssets(zkConfigPath),
   );
+
+  const secretKeyBytes = Buffer.from(SEED, 'hex');
+  const witnesses = {
+    secret_key: (): Uint8Array => new Uint8Array(secretKeyBytes),
+  };
 
   const walletCtx = await createWallet({ network, networkConfig, seed: SEED });
   await walletCtx.wallet.waitForSyncedState();
@@ -100,7 +106,7 @@ async function main() {
       contractAddress: deployment.address,
       compiledContract: compiledContract as any,
       privateStateId: PRIVATE_STATE_ID,
-      initialPrivateState: {},
+      initialPrivateState: witnesses,
     });
   } catch (err: any) {
     await walletCtx.wallet.stop();

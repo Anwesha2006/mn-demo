@@ -1,12 +1,62 @@
+// ============================================================
+// hello-world.compact — Midnight Privacy Demo Contract
+// ============================================================
+//
+// PRIVACY MODEL:
+//   PUBLIC (on-chain, visible to anyone):
+//     - `message`      : the last stored message string.
+//     - `owner`        : hash of the deployer's secret key (access control).
+//
+//   PRIVATE (witness, never on-chain):
+//     - `secret_key()` : the caller's secret key. Runs locally on the
+//                        caller's machine and is NEVER written to any
+//                        ledger record or ZK proof transcript.
+//
+//   WHAT THE USER PROVES (without revealing):
+//     - In storeMessage(): the caller proves they know the secret key
+//       whose hash matches the stored `owner`, WITHOUT revealing the key.
+//       The message is explicitly disclosed — intentional public storage.
+//     - disclose() is used deliberately wherever witness-derived data
+//       must be written to the public ledger.
+//
+// ============================================================
+
 pragma language_version >= 0.23;
 
 import CompactStandardLibrary;
 
-// Public ledger state - visible on blockchain
+// ── Public on-chain state ──────────────────────────────────
+// message: the last stored message — visible to all network participants
 export ledger message: Opaque<"string">;
 
-// Circuit to store a message on the blockchain
-// The message will be publicly visible
-export circuit storeMessage(customMessage: Opaque<"string">): [] {
-    message = disclose(customMessage);
+// owner: hash of the deployer's secret key — used for access control
+export ledger owner: Bytes<32>;
+
+// ── Private witness (off-chain only, never on ledger) ──────
+// The caller's secret key — runs locally, never leaves the device
+witness secret_key(): Bytes<32>;
+
+// ── Constructor ───────────────────────────────────────────
+// Records the deployer's identity as a key hash and sets an empty message.
+constructor(initialMessage: Opaque<"string">) {
+  // disclose() is required: we are writing witness-derived data to the
+  // public ledger. This is INTENTIONAL — the owner hash must be publicly
+  // visible so storeMessage() can verify ownership.
+  owner = disclose(persistentHash<Bytes<32>>(secret_key()));
+  message = disclose(initialMessage);
+}
+
+// ── Circuit: storeMessage ─────────────────────────────────
+// Stores a new message on-chain. Only the owner can call this.
+// Proves knowledge of secret_key WITHOUT revealing it.
+export circuit storeMessage(newMessage: Opaque<"string">): [] {
+  // Ownership proof: hash the caller's private key
+  const caller_hash = persistentHash<Bytes<32>>(secret_key());
+
+  // Verify caller is the owner — disclose is needed to compare a
+  // witness-derived value against the public ledger `owner` field.
+  assert(disclose(caller_hash) == owner, "Only the owner can store a message");
+
+  // Store the message — deliberately disclosed for on-chain transparency
+  message = disclose(newMessage);
 }
