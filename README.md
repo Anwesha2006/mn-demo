@@ -1,6 +1,13 @@
 # mn-demo
 
-A Midnight Network hello-world contract demonstrating private witnesses and ownership proofs.
+A minimal Midnight Network example that demonstrates how a contract can keep ownership information private while still proving it on-chain. The project covers a simple hello-world pattern with witness-based ownership checks, local devnet setup, contract deployment, and a smoke test against the live contract state.
+
+## What this project demonstrates
+
+- Private witness data that never appears on-chain.
+- Ownership proofs without exposing the secret key.
+- Local Midnight network orchestration with Docker Compose.
+- Contract deployment and read-back checks using the project scripts.
 
 ## Contract Address
 
@@ -30,7 +37,13 @@ The `disclose()` keyword is used deliberately wherever a witness-derived value m
 
 ## Quick start
 
-Requirements: Node 22, Docker (with Compose v2), and the Compact compiler at the version pinned in `.compact-version` at the create-mn-app repo root (the version this project was scaffolded against).
+### Prerequisites
+
+- Node.js 22
+- Docker with Compose v2
+- The Compact compiler version pinned in `.compact-version` at the create-mn-app repo root, which matches the version this project was scaffolded against
+
+### Run the demo
 
 ```bash
 npm install
@@ -38,13 +51,13 @@ npm run setup
 npm run test:e2e
 ```
 
-`npm run setup` runs end-to-end with no prompts:
+`npm run setup` is a one-shot bootstrap that does the following:
 
-1. `docker compose up -d --wait` — starts a local Midnight devnet (node, indexer, proof-server) and blocks until all three pass their healthchecks.
-2. `npm run compile` — compiles `contracts/hello-world.compact` to `contracts/managed/hello-world/`.
-3. `npm run deploy` — derives the genesis-seed wallet (NIGHT pre-minted), registers UTXOs for DUST generation, deploys the contract, writes `.midnight-state.json`.
+1. `docker compose up -d --wait` — starts the local Midnight devnet (node, indexer, and proof-server) and waits for all services to pass their health checks.
+2. `npm run compile` — compiles `contracts/hello-world.compact` into `contracts/managed/hello-world/`.
+3. `npm run deploy` — derives the genesis-seed wallet (with pre-minted NIGHT on the dev chain), registers UTXOs for DUST generation, deploys the contract, and writes `.midnight-state.json`.
 
-`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. Exits 0 if the contract is live and indexable.
+`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. The command exits successfully if the contract is live and indexable.
 
 ## Local devnet
 
