@@ -8,21 +8,17 @@ function persistentHash(input: Uint8Array): Uint8Array {
   return new Uint8Array(crypto.createHash('sha256').update(input).digest());
 }
 
-/** Generate a random 32-byte secret key. */
+
 function randomSecretKey(): Uint8Array {
   return new Uint8Array(crypto.randomBytes(32));
 }
 
-/** Simulate ledger state for the hello-world contract. */
+
 interface LedgerState {
   message: string;
   owner: Uint8Array; // persistentHash of owner's secret key
 }
 
-/**
- * Simulate the constructor: sets owner hash and initial message.
- * The secret_key() witness is consumed locally — never on-chain.
- */
 function simulateConstructor(secretKey: Uint8Array, initialMessage: string): LedgerState {
   return {
     message: initialMessage,
