@@ -1,15 +1,3 @@
-/**
- * tests/hello-world.test.ts
- *
- * Unit tests for the hello-world contract's circuit logic.
- *
- * These tests exercise the privacy model and state transitions WITHOUT
- * connecting to a network or proof server. They import the compiled
- * @midnight-ntwrk/compact-runtime to simulate ledger state locally.
- *
- * Run with: npm test
- * (Requires: npm run compile to have generated contracts/managed/hello-world/)
- */
 
 import * as crypto from 'node:crypto';
 
