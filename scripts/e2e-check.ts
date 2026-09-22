@@ -1,9 +1,4 @@
-/**
- * End-to-end smoke check for mn-demo.
- *
- * Reconnects to the deployed contract, reads its ledger state, and exits 0
- * on success. Used by `npm run test:e2e` and by the project's CI workflows.
- */
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
